@@ -21,6 +21,7 @@ type DatabaseConfig struct {
 	MaxConnections int
 	MaxIdleConns   int
 	MaxLifetime    time.Duration
+	MaxIdleTime    time.Duration
 }
 
 type ServerConfig struct {
@@ -53,6 +54,7 @@ func Load() (*Config, error) {
 	cfg.Database.MaxConnections = getEnvAsInt("DB_MAX_CONNECTIONS", 25)
 	cfg.Database.MaxIdleConns = getEnvAsInt("DB_MAX_IDLE_CONNECTIONS", 5)
 	cfg.Database.MaxLifetime = getEnvAsDuration("DB_MAX_LIFETIME", 5*time.Minute)
+	cfg.Database.MaxIdleTime = getEnvAsDuration("DB_MAX_IDLE_TIME", 5*time.Minute)
 
 	cfg.Server.Port = getEnv("SERVER_PORT", "8080")
 	cfg.Server.ReadTimeout = getEnvAsDuration("SERVER_READ_TIMEOUT", 15*time.Second)
