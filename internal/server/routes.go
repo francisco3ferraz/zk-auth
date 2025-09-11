@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/francisco3ferraz/zk-auth/internal/auth"
 	"github.com/francisco3ferraz/zk-auth/internal/database"
 	"github.com/gorilla/mux"
 )
 
-func SetupRoutes(router *mux.Router, db *database.DB) {
+func SetupRoutes(router *mux.Router, db *database.DB, authService *auth.Service) {
 	api := router.PathPrefix("/api/v1").Subrouter()
 
 	api.HandleFunc("/health", handleHealth(db)).Methods("GET")

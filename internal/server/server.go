@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/francisco3ferraz/zk-auth/internal/auth"
 	"github.com/francisco3ferraz/zk-auth/internal/config"
 	"github.com/francisco3ferraz/zk-auth/internal/database"
 	"github.com/francisco3ferraz/zk-auth/internal/model"
@@ -14,19 +15,19 @@ type Server struct {
 	httpServer *http.Server
 	db         *database.DB
 	config     *config.Config
+	auth       *auth.Service
 }
 
 func New(cfg *config.Config, db *database.DB) (*Server, error) {
 	userRepo := model.NewUserRepository(db.Pool())
 	sessionRepo := model.NewSessionRepository(db.Pool())
 
-	_ = userRepo
-	_ = sessionRepo
+	authService := auth.NewService(userRepo, sessionRepo, cfg)
 
 	r := mux.NewRouter()
 
 	r.Use(RecoveryMiddleware)
-	SetupRoutes(r, db)
+	SetupRoutes(r, db, authService)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.Server.Port),
@@ -37,6 +38,7 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 		httpServer: srv,
 		db:         db,
 		config:     cfg,
+		auth:       authService,
 	}
 
 	return server, nil
