@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/francisco3ferraz/zk-auth/internal/config"
 	"github.com/francisco3ferraz/zk-auth/internal/database"
-	"github.com/francisco3ferraz/zk-auth/internal/model"
+	"github.com/francisco3ferraz/zk-auth/internal/server"
 )
 
 func main() {
@@ -18,9 +18,12 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepo := model.NewUserRepository(db.Pool())
-	sessionRepo := model.NewSessionRepository(db.Pool())
+	srv, err := server.New(cfg, db)
+	if err != nil {
+		panic(err)
+	}
 
-	_ = userRepo
-	_ = sessionRepo
+	if err := srv.Start(); err != nil {
+		panic(err)
+	}
 }

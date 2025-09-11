@@ -49,6 +49,10 @@ func (db *DB) Pool() *pgxpool.Pool {
 	return db.pool
 }
 
+func (db *DB) Health(ctx context.Context) error {
+	return db.pool.Ping(ctx)
+}
+
 func (db *DB) Transaction(ctx context.Context, fn func(context.Context) error) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
