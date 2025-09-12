@@ -18,6 +18,11 @@ func main() {
 	}
 	defer db.Close()
 
+	if err := database.RunMigrations(cfg.Database.URL, "migrations"); err != nil {
+		db.Close()
+		panic("failed to run migrations")
+	}
+
 	srv, err := server.New(cfg, db)
 	if err != nil {
 		panic(err)
