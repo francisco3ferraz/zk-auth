@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/francisco3ferraz/zk-auth/internal/config"
-	"github.com/francisco3ferraz/zk-auth/internal/crypto"
 	"github.com/francisco3ferraz/zk-auth/internal/errors"
 	"github.com/francisco3ferraz/zk-auth/internal/model"
+	"github.com/francisco3ferraz/zk-auth/pkg/crypto"
 )
 
 type Service struct {
