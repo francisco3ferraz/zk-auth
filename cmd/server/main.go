@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/francisco3ferraz/zk-auth/internal/config"
 	"github.com/francisco3ferraz/zk-auth/internal/database"
 	"github.com/francisco3ferraz/zk-auth/internal/server"
@@ -19,8 +21,14 @@ func main() {
 	defer db.Close()
 
 	if err := database.RunMigrations(cfg.Database.URL, "migrations"); err != nil {
-		db.Close()
-		panic("failed to run migrations")
+		log.Printf("Migration failed: %v", err)
+
+		if cfg.Server.Environment == "production" {
+			log.Println("Continuing without migrations in production")
+		} else {
+			db.Close()
+			panic("failed to run migrations")
+		}
 	}
 
 	srv, err := server.New(cfg, db)
