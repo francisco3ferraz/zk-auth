@@ -19,6 +19,12 @@ func SetupRoutes(r *mux.Router, db *database.DB, authService *auth.Service, auth
 	api.HandleFunc("/auth/challenge", authHandler.HandleChallenge).Methods("POST")
 	api.HandleFunc("/auth/verify", authHandler.HandleVerify).Methods("POST")
 
+	protected := api.PathPrefix("").Subrouter()
+	protected.Use(AuthMiddleware(authService))
+
+	protected.HandleFunc("/auth/logout", authHandler.HandleLogout).Methods("POST")
+	protected.HandleFunc("/profile", authHandler.HandleProfile).Methods("GET")
+
 	r.NotFoundHandler = http.HandlerFunc(handleNotFound)
 }
 

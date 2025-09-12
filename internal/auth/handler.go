@@ -94,6 +94,23 @@ func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value("claims").(*TokenClaims)
+	if !ok {
+		errors.NewInternalError("failed to get user info").WriteResponse(w)
+		return
+	}
+
+	profile := map[string]interface{}{
+		"username":   claims.Username,
+		"session_id": claims.SessionID,
+		"expires_at": claims.ExpiresAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profile)
+}
+
 func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	token := h.extractToken(r)
 	if token == "" {
