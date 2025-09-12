@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/francisco3ferraz/zk-auth/internal/auth"
 	"github.com/francisco3ferraz/zk-auth/internal/config"
@@ -36,8 +38,12 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 	SetupRoutes(r, db, authService, authHandler)
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%s", cfg.Server.Port),
-		Handler: r,
+		Addr:           fmt.Sprintf(":%s", cfg.Server.Port),
+		Handler:        r,
+		ReadTimeout:    15 * time.Second,
+		WriteTimeout:   15 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 
 	server := &Server{
@@ -53,4 +59,14 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 func (s *Server) Start() error {
 	fmt.Printf("Starting server on port %s...\n", s.config.Server.Port)
 	return s.httpServer.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("error shutting down http server: %w", err)
+	}
+
+	s.db.Close()
+
+	return nil
 }
