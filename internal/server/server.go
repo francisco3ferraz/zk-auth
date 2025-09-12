@@ -27,7 +27,13 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 
 	r := mux.NewRouter()
 
-	r.Use(RecoveryMiddleware)
+	r.Use(
+		RecoveryMiddleware,
+		LoggingMiddleware,
+		CORSMiddleware,
+		AuthMiddleware(authService),
+	)
+
 	SetupRoutes(r, db, authService, authHandler)
 
 	srv := &http.Server{

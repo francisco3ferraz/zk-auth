@@ -186,3 +186,7 @@ func (s *Service) VerifyChallenge(ctx context.Context, req *VerifyRequest) (*Ver
 		ExpiresAt:   expiresAt,
 	}, nil
 }
+
+func (s *Service) ValidateToken(token string) (*TokenClaims, error) {
+	return s.verifyToken(token)
+}
