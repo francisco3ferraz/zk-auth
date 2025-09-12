@@ -9,8 +9,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func SetupRoutes(router *mux.Router, db *database.DB, authService *auth.Service, authHandler *auth.Handler) {
-	api := router.PathPrefix("/api/v1").Subrouter()
+func SetupRoutes(r *mux.Router, db *database.DB, authService *auth.Service, authHandler *auth.Handler) {
+	api := r.PathPrefix("/api/v1").Subrouter()
 
 	api.HandleFunc("/register", authHandler.HandleRegister).Methods("POST")
 	api.HandleFunc("/auth/challenge", authHandler.HandleChallenge).Methods("POST")
@@ -19,7 +19,7 @@ func SetupRoutes(router *mux.Router, db *database.DB, authService *auth.Service,
 	api.HandleFunc("/health", handleHealth(db)).Methods("GET")
 	api.HandleFunc("/", handleAPIInfo).Methods("GET")
 
-	router.NotFoundHandler = http.HandlerFunc(handleNotFound)
+	r.NotFoundHandler = http.HandlerFunc(handleNotFound)
 }
 
 func handleHealth(db *database.DB) http.HandlerFunc {
