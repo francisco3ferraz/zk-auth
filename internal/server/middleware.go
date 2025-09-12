@@ -3,20 +3,25 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/francisco3ferraz/zk-auth/internal/auth"
 	"github.com/francisco3ferraz/zk-auth/internal/errors"
+	"github.com/francisco3ferraz/zk-auth/internal/logger"
+	"go.uber.org/zap"
 )
 
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Panic recovered: %v", err)
+				logger.Error("Panic recovered",
+					zap.Any("error", err),
+					zap.String("path", r.URL.Path),
+					zap.String("method", r.Method),
+				)
 				errors.NewInternalError("internal server error").WriteResponse(w)
 			}
 		}()
@@ -37,13 +42,13 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(wrapped, r)
 
 		duration := time.Since(start)
-		log.Printf(
-			"%s %s %s %d %v",
-			r.RemoteAddr,
-			r.Method,
-			r.RequestURI,
-			wrapped.statusCode,
-			duration,
+		logger.Info("HTTP Request",
+			zap.String("remote_addr", r.RemoteAddr),
+			zap.String("method", r.Method),
+			zap.String("uri", r.RequestURI),
+			zap.Int("status", wrapped.statusCode),
+			zap.Duration("duration", duration),
+			zap.String("user_agent", r.UserAgent()),
 		)
 	})
 }

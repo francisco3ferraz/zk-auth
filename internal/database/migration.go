@@ -3,9 +3,11 @@ package database
 import (
 	"fmt"
 
+	"github.com/francisco3ferraz/zk-auth/internal/logger"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"go.uber.org/zap"
 )
 
 func RunMigrations(databaseURL, migrationsPath string) error {
@@ -27,7 +29,9 @@ func RunMigrations(databaseURL, migrationsPath string) error {
 		return fmt.Errorf("failed to get migration version: %w", err)
 	}
 
-	fmt.Printf("Database migrated to version %d (dirty: %v)\n", version, dirty)
+	logger.Info("Database migration completed",
+		zap.Uint("version", version),
+		zap.Bool("dirty", dirty))
 	return nil
 }
 

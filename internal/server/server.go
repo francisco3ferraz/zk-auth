@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/francisco3ferraz/zk-auth/internal/auth"
 	"github.com/francisco3ferraz/zk-auth/internal/config"
 	"github.com/francisco3ferraz/zk-auth/internal/database"
+	"github.com/francisco3ferraz/zk-auth/internal/logger"
 	"github.com/francisco3ferraz/zk-auth/internal/model"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 type Server struct {
@@ -40,9 +41,9 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 	srv := &http.Server{
 		Addr:           fmt.Sprintf(":%s", cfg.Server.Port),
 		Handler:        r,
-		ReadTimeout:    15 * time.Second,
-		WriteTimeout:   15 * time.Second,
-		IdleTimeout:    60 * time.Second,
+		ReadTimeout:    cfg.Server.ReadTimeout,
+		WriteTimeout:   cfg.Server.WriteTimeout,
+		IdleTimeout:    cfg.Server.IdleTimeout,
 		MaxHeaderBytes: 1 << 20,
 	}
 
@@ -57,7 +58,9 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 }
 
 func (s *Server) Start() error {
-	fmt.Printf("Starting server on port %s...\n", s.config.Server.Port)
+	logger.Info("Starting server",
+		zap.String("port", s.config.Server.Port),
+		zap.String("environment", s.config.Server.Environment))
 	return s.httpServer.ListenAndServe()
 }
 

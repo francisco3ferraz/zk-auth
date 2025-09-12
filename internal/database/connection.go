@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/francisco3ferraz/zk-auth/internal/config"
+	"github.com/francisco3ferraz/zk-auth/internal/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type DB struct {
@@ -17,8 +19,14 @@ func New(cfg *config.DatabaseConfig) (*DB, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	logger.Info("Initializing database connection",
+		zap.Int("maxConnections", cfg.MaxConnections),
+		zap.Duration("maxLifetime", cfg.MaxLifetime),
+		zap.Duration("maxIdleTime", cfg.MaxIdleTime))
+
 	poolConfig, err := pgxpool.ParseConfig(cfg.URL)
 	if err != nil {
+		logger.Error("Failed to parse database URL", zap.Error(err))
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
@@ -28,14 +36,17 @@ func New(cfg *config.DatabaseConfig) (*DB, error) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
+		logger.Error("Failed to create connection pool", zap.Error(err))
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
 
 	if err := pool.Ping(ctx); err != nil {
+		logger.Error("Failed to ping database", zap.Error(err))
 		pool.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	logger.Info("Database connection established successfully")
 	return &DB{pool: pool}, nil
 }
 

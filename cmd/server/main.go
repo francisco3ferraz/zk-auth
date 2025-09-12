@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,7 +10,9 @@ import (
 
 	"github.com/francisco3ferraz/zk-auth/internal/config"
 	"github.com/francisco3ferraz/zk-auth/internal/database"
+	"github.com/francisco3ferraz/zk-auth/internal/logger"
 	"github.com/francisco3ferraz/zk-auth/internal/server"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -21,23 +22,31 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	go func() {
-		sig := <-signalChan
-		log.Printf("Received signal: %v", sig)
-		cancel()
-	}()
-
-	if err := run(ctx); err != nil {
-		log.Printf("Error: %v", err)
+	if err := run(ctx, signalChan, cancel); err != nil {
+		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context) error {
+func run(ctx context.Context, signalChan chan os.Signal, cancel context.CancelFunc) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
+
+	// Initialize logger
+	if err := logger.Initialize(cfg.Server.Environment); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	defer logger.Sync()
+
+	// Set up signal handling
+	go func() {
+		sig := <-signalChan
+		logger.Info("Received shutdown signal",
+			zap.String("signal", sig.String()))
+		cancel()
+	}()
 
 	db, err := initializeDatabase(ctx, cfg)
 	if err != nil {
@@ -46,11 +55,11 @@ func run(ctx context.Context) error {
 	defer db.Close()
 
 	if err := runMigrationsWithRetry(ctx, cfg); err != nil {
-		log.Printf("Migration failed: %v", err)
+		logger.Error("Migration failed", zap.Error(err))
 		if cfg.Server.Environment != "production" {
 			return fmt.Errorf("failed to run migrations: %w", err)
 		}
-		log.Println("Continuing without migrations in production")
+		logger.Warn("Continuing without migrations in production")
 	}
 
 	srv, err := server.New(cfg, db)
@@ -67,7 +76,7 @@ func run(ctx context.Context) error {
 	case err := <-errChan:
 		return fmt.Errorf("server error: %w", err)
 	case <-ctx.Done():
-		log.Println("Shutting down server gracefully...")
+		logger.Info("Shutting down server gracefully...")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		return srv.Shutdown(shutdownCtx)
@@ -88,7 +97,10 @@ func initializeDatabase(ctx context.Context, cfg *config.Config) (*database.DB, 
 			if err == nil {
 				return db, nil
 			}
-			log.Printf("Failed to connect to database (attempt %d/%d): %v", i+1, maxRetries, err)
+			logger.Warn("Failed to connect to database",
+				zap.Int("attempt", i+1),
+				zap.Int("maxRetries", maxRetries),
+				zap.Error(err))
 			if i < maxRetries-1 {
 				time.Sleep(time.Second * time.Duration(i+1))
 			}
@@ -106,9 +118,13 @@ func runMigrationsWithRetry(ctx context.Context, cfg *config.Config) error {
 		default:
 			err := database.RunMigrations(cfg.Database.URL, "migrations")
 			if err == nil {
+				logger.Info("Database migrations completed successfully")
 				return nil
 			}
-			log.Printf("Migration attempt %d/%d failed: %v", i+1, maxRetries, err)
+			logger.Warn("Migration attempt failed",
+				zap.Int("attempt", i+1),
+				zap.Int("maxRetries", maxRetries),
+				zap.Error(err))
 			if i < maxRetries-1 {
 				time.Sleep(time.Second * 2)
 			}
