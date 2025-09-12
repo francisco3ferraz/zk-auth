@@ -31,7 +31,6 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 		RecoveryMiddleware,
 		LoggingMiddleware,
 		CORSMiddleware,
-		AuthMiddleware(authService),
 	)
 
 	SetupRoutes(r, db, authService, authHandler)

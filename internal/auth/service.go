@@ -187,6 +187,21 @@ func (s *Service) VerifyChallenge(ctx context.Context, req *VerifyRequest) (*Ver
 	}, nil
 }
 
+func (s *Service) Logout(ctx context.Context, token string) (*LogoutResponse, error) {
+	claims, err := s.verifyToken(token)
+	if err != nil {
+		return nil, errors.NewAuthenticationError("invalid token")
+	}
+
+	if err := s.sessionRepo.Delete(ctx, claims.SessionID); err != nil {
+		return nil, errors.NewInternalError("failed to delete session")
+	}
+
+	return &LogoutResponse{
+		Message: "Logged out successfully",
+	}, nil
+}
+
 func (s *Service) ValidateToken(token string) (*TokenClaims, error) {
 	return s.verifyToken(token)
 }

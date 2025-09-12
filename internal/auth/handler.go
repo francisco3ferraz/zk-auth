@@ -22,7 +22,6 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate request
 	if err := h.validateRegisterRequest(&req); err != nil {
 		err.WriteResponse(w)
 		return
@@ -50,7 +49,6 @@ func (h *Handler) HandleChallenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate request
 	if req.Username == "" || req.ClientA == "" {
 		errors.NewValidationError("username and client_a are required").WriteResponse(w)
 		return
@@ -96,20 +94,23 @@ func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (h *Handler) validateRegisterRequest(req *RegisterRequest) *errors.AppError {
-	if len(req.Username) < 3 || len(req.Username) > 50 {
-		return errors.NewValidationError("username must be between 3 and 50 characters")
+func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	token := h.extractToken(r)
+	if token == "" {
+		errors.NewAuthenticationError("missing authorization token").WriteResponse(w)
+		return
 	}
 
-	if len(req.Password) < 8 {
-		return errors.NewValidationError("password must be at least 8 characters")
-	}
-
-	for _, char := range req.Username {
-		if !isAlphanumeric(char) && char != '_' {
-			return errors.NewValidationError("username can only contain letters, numbers, and underscores")
+	resp, err := h.service.Logout(r.Context(), token)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteResponse(w)
+		} else {
+			errors.NewInternalError("logout failed").WriteResponse(w)
 		}
+		return
 	}
 
-	return nil
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }

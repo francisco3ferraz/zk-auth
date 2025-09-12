@@ -51,6 +51,14 @@ type VerifyResponse struct {
 	ExpiresAt   time.Time `json:"expires_at"`
 }
 
+type LogoutRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+type LogoutResponse struct {
+	Message string `json:"message"`
+}
+
 type TokenClaims struct {
 	UserID    string `json:"user_id"`
 	Username  string `json:"username"`

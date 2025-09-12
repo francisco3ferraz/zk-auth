@@ -10,14 +10,14 @@ import (
 )
 
 func SetupRoutes(r *mux.Router, db *database.DB, authService *auth.Service, authHandler *auth.Handler) {
+	r.HandleFunc("/health", handleHealth(db)).Methods("GET")
+	r.HandleFunc("/", handleAPIInfo).Methods("GET")
+
 	api := r.PathPrefix("/api/v1").Subrouter()
 
 	api.HandleFunc("/register", authHandler.HandleRegister).Methods("POST")
 	api.HandleFunc("/auth/challenge", authHandler.HandleChallenge).Methods("POST")
 	api.HandleFunc("/auth/verify", authHandler.HandleVerify).Methods("POST")
-
-	api.HandleFunc("/health", handleHealth(db)).Methods("GET")
-	api.HandleFunc("/", handleAPIInfo).Methods("GET")
 
 	r.NotFoundHandler = http.HandlerFunc(handleNotFound)
 }
@@ -52,7 +52,11 @@ func handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 		"name":    "Zero-Knowledge Authentication Server",
 		"version": "1.0.0",
 		"endpoints": map[string]string{
-			"health": "GET /health",
+			"register":  "POST /api/v1/register",
+			"challenge": "POST /api/v1/auth/challenge",
+			"verify":    "POST /api/v1/auth/verify",
+			"logout":    "POST /api/v1/auth/logout",
+			"health":    "GET /health",
 		},
 	}
 
