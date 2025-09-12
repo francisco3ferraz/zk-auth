@@ -9,11 +9,13 @@ import (
 type ErrorCode string
 
 const (
-	ErrCodeInternal   ErrorCode = "INTERNAL_ERROR"
-	ErrCodeNotFound   ErrorCode = "NOT_FOUND"
-	ErrCodeBadRequest ErrorCode = "BAD_REQUEST"
-	ErrCodeConflict   ErrorCode = "CONFLICT"
-	ErrCodeValidation ErrorCode = "VALIDATION_ERROR"
+	ErrCodeInternal       ErrorCode = "INTERNAL_ERROR"
+	ErrCodeNotFound       ErrorCode = "NOT_FOUND"
+	ErrCodeBadRequest     ErrorCode = "BAD_REQUEST"
+	ErrCodeConflict       ErrorCode = "CONFLICT"
+	ErrCodeValidation     ErrorCode = "VALIDATION_ERROR"
+	ErrCodeAuthentication ErrorCode = "AUTHENTICATION_ERROR"
+	ErrCodeSessionExpired ErrorCode = "SESSION_EXPIRED"
 )
 
 type AppError struct {
@@ -71,5 +73,21 @@ func NewValidationError(message string) *AppError {
 		Code:       ErrCodeValidation,
 		Message:    message,
 		StatusCode: http.StatusBadRequest,
+	}
+}
+
+func NewAuthenticationError(message string) *AppError {
+	return &AppError{
+		Code:       ErrCodeAuthentication,
+		Message:    message,
+		StatusCode: http.StatusUnauthorized,
+	}
+}
+
+func NewSessionExpiredError() *AppError {
+	return &AppError{
+		Code:       ErrCodeSessionExpired,
+		Message:    "Session has expired",
+		StatusCode: http.StatusUnauthorized,
 	}
 }

@@ -29,6 +29,28 @@ type RegisterResponse struct {
 	Message  string `json:"message"`
 }
 
+type ChallengeRequest struct {
+	Username string `json:"username" validate:"required"`
+	ClientA  string `json:"client_a" validate:"required"`
+}
+
+type ChallengeResponse struct {
+	SessionID string `json:"session_id"`
+	Salt      string `json:"salt"`
+	ServerB   string `json:"server_b"`
+}
+
+type VerifyRequest struct {
+	SessionID   string `json:"session_id" validate:"required"`
+	ClientProof string `json:"client_proof" validate:"required"`
+}
+
+type VerifyResponse struct {
+	Token       string    `json:"token"`
+	ServerProof string    `json:"server_proof"`
+	ExpiresAt   time.Time `json:"expires_at"`
+}
+
 type TokenClaims struct {
 	UserID    string `json:"user_id"`
 	Username  string `json:"username"`
