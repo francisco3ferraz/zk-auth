@@ -23,11 +23,12 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 	sessionRepo := model.NewSessionRepository(db.Pool())
 
 	authService := auth.NewService(userRepo, sessionRepo, cfg)
+	authHandler := auth.NewHandler(authService)
 
 	r := mux.NewRouter()
 
 	r.Use(RecoveryMiddleware)
-	SetupRoutes(r, db, authService)
+	SetupRoutes(r, db, authService, authHandler)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.Server.Port),

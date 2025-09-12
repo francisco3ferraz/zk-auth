@@ -12,6 +12,8 @@ const (
 	ErrCodeInternal   ErrorCode = "INTERNAL_ERROR"
 	ErrCodeNotFound   ErrorCode = "NOT_FOUND"
 	ErrCodeBadRequest ErrorCode = "BAD_REQUEST"
+	ErrCodeConflict   ErrorCode = "CONFLICT"
+	ErrCodeValidation ErrorCode = "VALIDATION_ERROR"
 )
 
 type AppError struct {
@@ -51,6 +53,22 @@ func NewNotFoundError(resource string) *AppError {
 func NewBadRequestError(message string) *AppError {
 	return &AppError{
 		Code:       ErrCodeBadRequest,
+		Message:    message,
+		StatusCode: http.StatusBadRequest,
+	}
+}
+
+func NewConflictError(message string) *AppError {
+	return &AppError{
+		Code:       ErrCodeConflict,
+		Message:    message,
+		StatusCode: http.StatusConflict,
+	}
+}
+
+func NewValidationError(message string) *AppError {
+	return &AppError{
+		Code:       ErrCodeValidation,
 		Message:    message,
 		StatusCode: http.StatusBadRequest,
 	}
