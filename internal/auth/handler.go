@@ -95,7 +95,7 @@ func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
-	claims, ok := r.Context().Value("claims").(*TokenClaims)
+	claims, ok := r.Context().Value(ClaimsContextKey).(*TokenClaims)
 	if !ok {
 		errors.NewInternalError("failed to get user info").WriteResponse(w)
 		return

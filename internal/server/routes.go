@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/francisco3ferraz/zk-auth/internal/auth"
 	"github.com/francisco3ferraz/zk-auth/internal/database"
@@ -38,7 +39,7 @@ func handleHealth(db *database.DB) http.HandlerFunc {
 		health := map[string]interface{}{
 			"status":    "healthy",
 			"database":  dbStatus,
-			"timestamp": http.TimeFormat,
+			"timestamp": time.Now().Format(time.RFC3339),
 		}
 
 		statusCode := http.StatusOK

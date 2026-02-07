@@ -57,10 +57,14 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 	return server, nil
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(ctx context.Context) error {
 	logger.Info("Starting server",
 		zap.String("port", s.config.Server.Port),
 		zap.String("environment", s.config.Server.Environment))
+
+	// Start background cleanup for expired auth challenges
+	s.auth.StartCleanup(ctx)
+
 	return s.httpServer.ListenAndServe()
 }
 

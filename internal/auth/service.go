@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/francisco3ferraz/zk-auth/internal/config"
@@ -14,11 +15,12 @@ import (
 )
 
 type Service struct {
-	srp         *crypto.SRP
-	userRepo    *model.UserRepository
-	sessionRepo *model.SessionRepository
-	config      *config.Config
-	challenges  map[string]*AuthChallenge // In-memory challenge storage
+	srp          *crypto.SRP
+	userRepo     *model.UserRepository
+	sessionRepo  *model.SessionRepository
+	config       *config.Config
+	challenges   map[string]*AuthChallenge // In-memory challenge storage
+	challengesMu sync.RWMutex              // Protects challenges map
 }
 
 func NewService(userRepo *model.UserRepository, sessionRepo *model.SessionRepository, cfg *config.Config) *Service {
@@ -28,6 +30,35 @@ func NewService(userRepo *model.UserRepository, sessionRepo *model.SessionReposi
 		sessionRepo: sessionRepo,
 		config:      cfg,
 		challenges:  make(map[string]*AuthChallenge),
+	}
+}
+
+// StartCleanup starts a background goroutine that periodically removes expired challenges.
+// It should be called when the server starts and will stop when the context is cancelled.
+func (s *Service) StartCleanup(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				s.cleanupExpiredChallenges()
+			}
+		}
+	}()
+}
+
+func (s *Service) cleanupExpiredChallenges() {
+	s.challengesMu.Lock()
+	defer s.challengesMu.Unlock()
+
+	now := time.Now()
+	for id, challenge := range s.challenges {
+		if now.Sub(challenge.CreatedAt) > 5*time.Minute {
+			delete(s.challenges, id)
+		}
 	}
 }
 
@@ -104,6 +135,7 @@ func (s *Service) StartChallenge(ctx context.Context, req *ChallengeRequest) (*C
 		return nil, errors.NewInternalError("failed to create session")
 	}
 
+	s.challengesMu.Lock()
 	s.challenges[session.ID] = &AuthChallenge{
 		SessionID:    session.ID,
 		Username:     user.Username,
@@ -114,6 +146,7 @@ func (s *Service) StartChallenge(ctx context.Context, req *ChallengeRequest) (*C
 		Verifier:     user.Verifier,
 		CreatedAt:    time.Now(),
 	}
+	s.challengesMu.Unlock()
 
 	return &ChallengeResponse{
 		SessionID: session.ID,
@@ -123,11 +156,14 @@ func (s *Service) StartChallenge(ctx context.Context, req *ChallengeRequest) (*C
 }
 
 func (s *Service) VerifyChallenge(ctx context.Context, req *VerifyRequest) (*VerifyResponse, error) {
+	s.challengesMu.Lock()
 	challenge, exists := s.challenges[req.SessionID]
 	if !exists {
+		s.challengesMu.Unlock()
 		return nil, errors.NewAuthenticationError("invalid or expired session")
 	}
-	defer delete(s.challenges, req.SessionID)
+	delete(s.challenges, req.SessionID)
+	s.challengesMu.Unlock()
 
 	if time.Since(challenge.CreatedAt) > 5*time.Minute {
 		return nil, errors.NewSessionExpiredError()

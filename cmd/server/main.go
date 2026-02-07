@@ -69,7 +69,7 @@ func run(ctx context.Context, signalChan chan os.Signal, cancel context.CancelFu
 
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- srv.Start()
+		errChan <- srv.Start(ctx)
 	}()
 
 	select {

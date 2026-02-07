@@ -91,10 +91,7 @@ func AuthMiddleware(authService *auth.Service) func(http.Handler) http.Handler {
 				return
 			}
 
-			type contextKey string
-			const claimsKey contextKey = "claims"
-
-			ctx := context.WithValue(r.Context(), claimsKey, claims)
+			ctx := context.WithValue(r.Context(), auth.ClaimsContextKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
