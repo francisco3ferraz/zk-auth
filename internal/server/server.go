@@ -28,12 +28,16 @@ func New(cfg *config.Config, db *database.DB) (*Server, error) {
 	authService := auth.NewService(userRepo, sessionRepo, cfg)
 	authHandler := auth.NewHandler(authService)
 
+	// Create rate limiter
+	rateLimiter := NewRateLimiter(&cfg.Security)
+
 	r := mux.NewRouter()
 
 	r.Use(
 		RecoveryMiddleware,
 		LoggingMiddleware,
 		CORSMiddleware,
+		RateLimitMiddleware(rateLimiter),
 	)
 
 	SetupRoutes(r, db, authService, authHandler)

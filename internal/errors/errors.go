@@ -9,13 +9,14 @@ import (
 type ErrorCode string
 
 const (
-	ErrCodeInternal       ErrorCode = "INTERNAL_ERROR"
-	ErrCodeNotFound       ErrorCode = "NOT_FOUND"
-	ErrCodeBadRequest     ErrorCode = "BAD_REQUEST"
-	ErrCodeConflict       ErrorCode = "CONFLICT"
-	ErrCodeValidation     ErrorCode = "VALIDATION_ERROR"
-	ErrCodeAuthentication ErrorCode = "AUTHENTICATION_ERROR"
-	ErrCodeSessionExpired ErrorCode = "SESSION_EXPIRED"
+	ErrCodeInternal        ErrorCode = "INTERNAL_ERROR"
+	ErrCodeNotFound        ErrorCode = "NOT_FOUND"
+	ErrCodeBadRequest      ErrorCode = "BAD_REQUEST"
+	ErrCodeConflict        ErrorCode = "CONFLICT"
+	ErrCodeValidation      ErrorCode = "VALIDATION_ERROR"
+	ErrCodeAuthentication  ErrorCode = "AUTHENTICATION_ERROR"
+	ErrCodeSessionExpired  ErrorCode = "SESSION_EXPIRED"
+	ErrCodeTooManyRequests ErrorCode = "TOO_MANY_REQUESTS"
 )
 
 type AppError struct {
@@ -89,5 +90,13 @@ func NewSessionExpiredError() *AppError {
 		Code:       ErrCodeSessionExpired,
 		Message:    "Session has expired",
 		StatusCode: http.StatusUnauthorized,
+	}
+}
+
+func NewTooManyRequestsError() *AppError {
+	return &AppError{
+		Code:       ErrCodeTooManyRequests,
+		Message:    "Too many requests, please try again later",
+		StatusCode: http.StatusTooManyRequests,
 	}
 }
