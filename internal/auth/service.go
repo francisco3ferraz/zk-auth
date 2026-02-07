@@ -21,6 +21,7 @@ type Service struct {
 	config       *config.Config
 	challenges   map[string]*AuthChallenge // In-memory challenge storage
 	challengesMu sync.RWMutex              // Protects challenges map
+	blacklist    *TokenBlacklist           // Token revocation list
 }
 
 func NewService(userRepo *model.UserRepository, sessionRepo *model.SessionRepository, cfg *config.Config) *Service {
@@ -30,6 +31,7 @@ func NewService(userRepo *model.UserRepository, sessionRepo *model.SessionReposi
 		sessionRepo: sessionRepo,
 		config:      cfg,
 		challenges:  make(map[string]*AuthChallenge),
+		blacklist:   NewTokenBlacklist(),
 	}
 }
 
@@ -229,6 +231,9 @@ func (s *Service) Logout(ctx context.Context, token string) (*LogoutResponse, er
 		return nil, errors.NewAuthenticationError("invalid token")
 	}
 
+	// Revoke the token
+	s.blacklist.Revoke(token, claims.ExpiresAt.Time)
+
 	if err := s.sessionRepo.Delete(ctx, claims.SessionID); err != nil {
 		return nil, errors.NewInternalError("failed to delete session")
 	}
@@ -239,6 +244,10 @@ func (s *Service) Logout(ctx context.Context, token string) (*LogoutResponse, er
 }
 
 func (s *Service) ValidateToken(token string) (*TokenClaims, error) {
+	// Check if token has been revoked
+	if s.blacklist.IsRevoked(token) {
+		return nil, errors.NewAuthenticationError("token has been revoked")
+	}
 	return s.verifyToken(token)
 }
 
