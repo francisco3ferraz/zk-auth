@@ -152,3 +152,35 @@ func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+func (h *Handler) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(ClaimsContextKey).(*TokenClaims)
+	if !ok {
+		errors.NewInternalError("failed to get user info").WriteResponse(w)
+		return
+	}
+
+	var req ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.NewBadRequestError("invalid request body").WriteResponse(w)
+		return
+	}
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		errors.NewValidationError("current_password and new_password are required").WriteResponse(w)
+		return
+	}
+
+	resp, err := h.service.ChangePassword(r.Context(), claims, &req)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteResponse(w)
+		} else {
+			errors.NewInternalError("password change failed").WriteResponse(w)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}

@@ -272,3 +272,54 @@ func (s *Service) RefreshToken(ctx context.Context, token string) (*RefreshRespo
 		ExpiresAt: expiresAt,
 	}, nil
 }
+
+func (s *Service) ChangePassword(ctx context.Context, claims *TokenClaims, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
+	// Get user from database
+	user, err := s.userRepo.GetByUsername(ctx, claims.Username)
+	if err != nil {
+		return nil, errors.NewInternalError("failed to retrieve user")
+	}
+
+	// Verify current password by computing verifier and comparing
+	currentVerifier, err := s.srp.ComputeVerifier(user.Username, req.CurrentPassword, user.Salt)
+	if err != nil {
+		return nil, errors.NewInternalError("failed to verify password")
+	}
+
+	storedVerifier := new(big.Int).SetBytes(user.Verifier)
+	if currentVerifier.Cmp(storedVerifier) != 0 {
+		return nil, errors.NewAuthenticationError("current password is incorrect")
+	}
+
+	// Validate new password
+	if len(req.NewPassword) < 8 {
+		return nil, errors.NewValidationError("new password must be at least 8 characters")
+	}
+
+	// Generate new salt and verifier for the new password
+	newSalt, err := s.srp.GenerateSalt()
+	if err != nil {
+		return nil, errors.NewInternalError("failed to generate salt")
+	}
+
+	newVerifier, err := s.srp.ComputeVerifier(user.Username, req.NewPassword, newSalt)
+	if err != nil {
+		return nil, errors.NewInternalError("failed to compute verifier")
+	}
+
+	// Update user with new credentials
+	user.Salt = newSalt
+	user.Verifier = newVerifier.Bytes()
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, errors.NewInternalError("failed to update password")
+	}
+
+	// Invalidate all other sessions for security
+	if err := s.sessionRepo.DeleteByUserID(ctx, user.ID); err != nil {
+		// Log error but don't fail the request
+	}
+
+	return &ChangePasswordResponse{
+		Message: "Password changed successfully",
+	}, nil
+}

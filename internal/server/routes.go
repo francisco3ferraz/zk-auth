@@ -25,6 +25,7 @@ func SetupRoutes(r *mux.Router, db *database.DB, authService *auth.Service, auth
 
 	protected.HandleFunc("/auth/logout", authHandler.HandleLogout).Methods("POST")
 	protected.HandleFunc("/auth/refresh", authHandler.HandleRefresh).Methods("POST")
+	protected.HandleFunc("/auth/password", authHandler.HandleChangePassword).Methods("PUT")
 	protected.HandleFunc("/profile", authHandler.HandleProfile).Methods("GET")
 
 	r.NotFoundHandler = http.HandlerFunc(handleNotFound)
