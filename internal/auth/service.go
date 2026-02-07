@@ -241,3 +241,34 @@ func (s *Service) Logout(ctx context.Context, token string) (*LogoutResponse, er
 func (s *Service) ValidateToken(token string) (*TokenClaims, error) {
 	return s.verifyToken(token)
 }
+
+func (s *Service) RefreshToken(ctx context.Context, token string) (*RefreshResponse, error) {
+	claims, err := s.verifyToken(token)
+	if err != nil {
+		return nil, errors.NewAuthenticationError("invalid or expired token")
+	}
+
+	// Verify the session still exists and is valid
+	session, err := s.sessionRepo.GetByID(ctx, claims.SessionID)
+	if err != nil {
+		return nil, errors.NewAuthenticationError("session not found")
+	}
+
+	// Generate new token with fresh expiry
+	newToken, expiresAt, err := s.generateToken(session.ID, claims.Username)
+	if err != nil {
+		return nil, errors.NewInternalError("failed to generate token")
+	}
+
+	// Update session with new token
+	session.Token = newToken
+	session.ExpiresAt = expiresAt
+	if err := s.sessionRepo.Update(ctx, session); err != nil {
+		return nil, errors.NewInternalError("failed to update session")
+	}
+
+	return &RefreshResponse{
+		Token:     newToken,
+		ExpiresAt: expiresAt,
+	}, nil
+}

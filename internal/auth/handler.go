@@ -131,3 +131,24 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
+	token := h.extractToken(r)
+	if token == "" {
+		errors.NewAuthenticationError("missing authorization token").WriteResponse(w)
+		return
+	}
+
+	resp, err := h.service.RefreshToken(r.Context(), token)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteResponse(w)
+		} else {
+			errors.NewInternalError("refresh failed").WriteResponse(w)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}

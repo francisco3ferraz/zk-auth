@@ -59,6 +59,15 @@ type LogoutResponse struct {
 	Message string `json:"message"`
 }
 
+type RefreshRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+type RefreshResponse struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 type TokenClaims struct {
 	UserID    string `json:"user_id"`
 	Username  string `json:"username"`
